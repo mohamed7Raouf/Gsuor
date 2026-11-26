@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --josour-emerald: #134435;
+    --josour-emerald-deep: #0b2d22;
+    --josour-olive: #6f7c3c;
+    --josour-gold: #e0b347;
+    --josour-gold-light: #f3d27a;
+    --josour-sage: #eaf1ea;
+    --josour-ivory: #fafbf7;
+    --josour-ink: #11261e;
+  }
+
+  html {
+    font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+  }
+}
+
+.font-display {
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+}
+
+.font-body {
+  font-family: 'Tajawal', 'Cairo', sans-serif;
+}
+
+.font-num {
+  font-family: 'Cairo', 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Enhanced 10-second seamless continuous loop motion-graphics animations */
+@keyframes josour-shimmer-10s {
+  0% {
+    transform: translateX(130%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateX(-130%);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+}
+
+@keyframes josour-float-10s {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  25% {
+    transform: translateY(-7px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+  75% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes josour-breathe-10s {
+  0%, 100% {
+    transform: scale(1) translateY(0px);
+  }
+  50% {
+    transform: scale(1.04) translateY(-3px);
+  }
+}
+
+@keyframes josour-icon-swing-10s {
+  0%, 100% {
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: rotate(8deg) scale(1.14);
+  }
+}
+
+@keyframes josour-wind-10s {
+  0%, 100% {
+    transform: translateX(10px);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateX(-14px);
+    opacity: 1;
+  }
+}
+
+@keyframes josour-spin-10s {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes josour-spin-reverse-10s {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes josour-wave-10s {
+  0%, 100% {
+    transform: translateX(0px) translateY(0px);
+  }
+  50% {
+    transform: translateX(-12px) translateY(-4px);
+  }
+}
+
+@keyframes josour-progress-10s {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes josour-mg-drift-a-10s {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate(-24px, 28px) rotate(45deg) scale(1.14);
+    opacity: 0.8;
+  }
+}
+
+@keyframes josour-mg-drift-b-10s {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(26px, -22px) rotate(-30deg);
+    opacity: 0.72;
+  }
+}
+
+@keyframes josour-mg-rise-10s {
+  0%, 100% {
+    transform: translateY(10px) scaleY(0.85);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-14px) scaleY(1.18);
+    opacity: 0.65;
+  }
+}
+
+@keyframes josour-row-pulse-10s {
+  0%, 100% {
+    transform: translateX(0px) scale(1);
+  }
+  50% {
+    transform: translateX(-6px) scale(1.012);
+  }
+}
+
+.animate-josour-shimmer {
+  animation: josour-shimmer-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-float {
+  animation: josour-float-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-breathe {
+  animation: josour-breathe-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-icon-swing {
+  animation: josour-icon-swing-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-wind {
+  animation: josour-wind-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-spin {
+  animation: josour-spin-10s 10s linear infinite;
+}
+
+.animate-josour-spin-reverse {
+  animation: josour-spin-reverse-10s 10s linear infinite;
+}
+
+.animate-josour-wave {
+  animation: josour-wave-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-progress {
+  transform-origin: right center;
+  animation: josour-progress-10s 10s linear infinite;
+}
+
+.animate-josour-mg-a {
+  animation: josour-mg-drift-a-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-mg-b {
+  animation: josour-mg-drift-b-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-mg-rise {
+  animation: josour-mg-rise-10s 10s ease-in-out infinite;
+}
+
+.animate-josour-row-pulse {
+  animation: josour-row-pulse-10s 10s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-josour-shimmer,
+  .animate-josour-float,
+  .animate-josour-breathe,
+  .animate-josour-icon-swing,
+  .animate-josour-wind,
+  .animate-josour-spin,
+  .animate-josour-spin-reverse,
+  .animate-josour-wave,
+  .animate-josour-progress,
+  .animate-josour-mg-a,
+  .animate-josour-mg-b,
+  .animate-josour-mg-rise,
+  .animate-josour-row-pulse {
+    animation: none !important;
+  }
+}
