@@ -1,8 +1,32 @@
-import type {JosourLiveBundle, ToolId} from '../types/liveData';
+import type {EgyptPopulationData, JosourLiveBundle, ToolId} from '../types/liveData';
 
 export const REELS_WIDTH = 1080;
 export const REELS_HEIGHT = 1920;
 export const LOOP_DURATION_MS = 10_000;
+
+export function computeLivePopulationSnapshot(pop: EgyptPopulationData, nowMs = Date.now()) {
+  const fetchedMs = Date.parse(pop.fetchedAtIso);
+  const elapsedSec = Number.isFinite(fetchedMs) ? Math.max(0, (nowMs - fetchedMs) / 1000) : 0;
+  const currentTotal = Math.round(pop.basePopulation + elapsedSec * pop.growthPerSecond);
+  const birthsToday = Math.round(pop.birthsTodayBase + elapsedSec * pop.birthsPerSecond);
+  const deathsToday = Math.round(pop.deathsTodayBase + elapsedSec * pop.deathsPerSecond);
+  const netToday = Math.max(0, birthsToday - deathsToday);
+  return {currentTotal, birthsToday, deathsToday, netToday};
+}
+
+export function formatHaramPrayerCountdown(nextPrayerIso: string, nowMs = Date.now()): string {
+  const targetMs = Date.parse(nextPrayerIso);
+  if (!Number.isFinite(targetMs)) return 'قريباً';
+  const diffMs = targetMs - nowMs;
+  if (diffMs <= 0) return 'حان الآن موعد الأذان';
+  const totalMins = Math.ceil(diffMs / 60_000);
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (hrs > 0) {
+    return mins > 0 ? `باقي ${hrs} س و ${mins} د` : `باقي ${hrs} ساعة`;
+  }
+  return `باقي ${mins} دقيقة`;
+}
 
 let cachedLogoImg: HTMLImageElement | null = null;
 let logoLoadPromise: Promise<HTMLImageElement | null> | null = null;
@@ -21,7 +45,7 @@ export function ensureLogoLoaded(): Promise<HTMLImageElement | null> {
       resolve(img);
     };
     img.onerror = () => resolve(null);
-    img.src = '/assets/aistudio/logo_a3720299.webp';
+    img.src = './assets/aistudio/logo_a3720299.webp';
   });
   return logoLoadPromise;
 }
@@ -801,6 +825,300 @@ function drawGoldFrame(ctx: CanvasRenderingContext2D, bundle: JosourLiveBundle, 
   // Bottom left empty cleanly
 }
 
+function drawPopulationFrame(ctx: CanvasRenderingContext2D, bundle: JosourLiveBundle, t: number) {
+  const {population} = bundle;
+  drawBaseCanvasBackground(ctx, t);
+  const phase = t * Math.PI * 2;
+  const live = computeLivePopulationSnapshot(population, Date.now() + t * LOOP_DURATION_MS);
+
+  // Subtle animated demographic rings in upper-right
+  ctx.save();
+  ctx.strokeStyle = 'rgba(19, 68, 53, 0.14)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(920, 220, 68 + Math.sin(phase) * 8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(224, 179, 71, 0.34)';
+  ctx.beginPath();
+  ctx.arc(920, 220, 40, phase, phase + Math.PI * 1.4);
+  ctx.stroke();
+  ctx.restore();
+
+  // Top Logo ONLY with white background
+  drawJosourLogoWithWhiteBg(ctx, REELS_WIDTH / 2, 46 + Math.sin(phase) * 6, 1.0);
+  drawTitleBanner(ctx, 'التعداد السكاني في مصر', 'الساعة السكانية المباشرة', 184, t);
+  drawDatePill(ctx, population.cairoDateAr, 408, t);
+
+  // Main live counter hero card
+  const heroY = 514 + Math.sin(phase) * 8;
+  ctx.save();
+  ctx.shadowColor = 'rgba(11, 45, 34, 0.22)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 10;
+  const heroGrad = ctx.createLinearGradient(56, heroY, 1024, heroY + 250);
+  heroGrad.addColorStop(0, '#0D3B2C');
+  heroGrad.addColorStop(0.5, '#17523F');
+  heroGrad.addColorStop(1, '#0D3B2C');
+  ctx.fillStyle = heroGrad;
+  roundRectPath(ctx, 56, heroY, REELS_WIDTH - 112, 248, 34);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#F2CE74';
+  ctx.font = '800 32px Cairo, Tajawal, sans-serif';
+  ctx.fillText('إجمالي عدد السكان الآن في مصر', REELS_WIDTH / 2, heroY + 58);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '900 78px Cairo, monospace';
+  ctx.fillText(live.currentTotal.toLocaleString('en-US'), REELS_WIDTH / 2, heroY + 142);
+
+  ctx.fillStyle = '#D5E5DB';
+  ctx.font = '700 28px Cairo, Tajawal, sans-serif';
+  ctx.fillText(
+    `مولود كل ${population.birthIntervalSec} ثانية · نمو سنوي ${population.annualGrowthPct}%`,
+    REELS_WIDTH / 2,
+    heroY + 208,
+  );
+
+  // 4 Stat cards grid (2x2)
+  const cards = [
+    {
+      title: 'المواليد اليوم',
+      value: live.birthsToday.toLocaleString('en-US'),
+      sub: `منذ بداية العام: ${population.birthsYearToDate.toLocaleString('en-US')}`,
+      accent: '#134435',
+    },
+    {
+      title: 'الوفيات اليوم',
+      value: live.deathsToday.toLocaleString('en-US'),
+      sub: `منذ بداية العام: ${population.deathsYearToDate.toLocaleString('en-US')}`,
+      accent: '#4B6359',
+    },
+    {
+      title: `نسبة الذكور (${population.malePct}%)`,
+      value: population.malePopulation.toLocaleString('en-US'),
+      sub: 'نسمة من إجمالي السكان',
+      accent: '#17523F',
+    },
+    {
+      title: `نسبة الإناث (${population.femalePct}%)`,
+      value: population.femalePopulation.toLocaleString('en-US'),
+      sub: 'نسمة من إجمالي السكان',
+      accent: '#B9821E',
+    },
+  ];
+
+  const cardW = 468;
+  const cardH = 264;
+  const gapX = 32;
+  const gapY = 24;
+  const gridStartY = 804;
+
+  cards.forEach((c, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const cx = col === 0 ? 556 : 56;
+    const cy = gridStartY + row * (cardH + gapY) + Math.sin(phase + idx * 1.1) * 7;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(19, 68, 53, 0.08)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = '#FAFBF7';
+    roundRectPath(ctx, cx, cy, cardW, cardH, 30);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(19, 68, 53, 0.16)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = c.accent;
+    roundRectPath(ctx, cx + 32, cy + 28, cardW - 64, 52, 18);
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 26px Cairo, Tajawal, sans-serif';
+    ctx.fillText(c.title, cx + cardW / 2, cy + 55);
+
+    ctx.fillStyle = '#11261E';
+    ctx.font = '900 46px Cairo, monospace';
+    ctx.fillText(c.value, cx + cardW / 2, cy + 148);
+
+    ctx.fillStyle = '#4B6359';
+    ctx.font = '700 22px Cairo, Tajawal, sans-serif';
+    ctx.fillText(c.sub, cx + cardW / 2, cy + 216);
+    ctx.restore();
+  });
+
+  // Daily net growth banner
+  const netY = 1388 + Math.sin(phase + 2) * 7;
+  ctx.save();
+  const netGrad = ctx.createLinearGradient(56, netY, 1024, netY + 185);
+  netGrad.addColorStop(0, '#DFAA3E');
+  netGrad.addColorStop(0.5, '#F5D57E');
+  netGrad.addColorStop(1, '#DDA63A');
+  ctx.fillStyle = netGrad;
+  roundRectPath(ctx, 56, netY, REELS_WIDTH - 112, 185, 32);
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#11261E';
+  ctx.font = '800 32px Cairo, Tajawal, sans-serif';
+  ctx.fillText('الزيادة السكانية الصافية اليومية ونسبة الحضر', REELS_WIDTH / 2, netY + 52);
+
+  ctx.font = '900 46px Cairo, monospace';
+  ctx.fillText(
+    `+${live.netToday.toLocaleString('en-US')} نسمة اليوم  |  حضر ${population.urbanPct}%`,
+    REELS_WIDTH / 2,
+    netY + 124,
+  );
+  ctx.restore();
+
+  // Bottom left empty cleanly
+}
+
+function drawHaramFrame(ctx: CanvasRenderingContext2D, bundle: JosourLiveBundle, t: number) {
+  const {haram} = bundle;
+  drawBaseCanvasBackground(ctx, t);
+  const phase = t * Math.PI * 2;
+
+  // Top Logo ONLY with white background
+  drawJosourLogoWithWhiteBg(ctx, REELS_WIDTH / 2, 46 + Math.sin(phase) * 6, 1.0);
+  drawTitleBanner(ctx, 'الحرم المكي مباشر', 'إحصائيات المسجد الحرام ومكة المكرمة', 184, t);
+  drawDatePill(ctx, `${haram.hijriDateAr} • ${haram.makkahDateAr}`, 408, t);
+
+  // Dual Top Cards: Weather + Next Prayer Countdown
+  const topY = 514;
+  const topH = 228;
+
+  ctx.save();
+  ctx.translate(0, Math.sin(phase) * 7);
+  const wGrad = ctx.createLinearGradient(556, topY, 1024, topY + topH);
+  wGrad.addColorStop(0, '#134435');
+  wGrad.addColorStop(1, '#0B2D22');
+  ctx.fillStyle = wGrad;
+  roundRectPath(ctx, 556, topY, 468, topH, 30);
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#F2CE74';
+  ctx.font = '800 28px Cairo, Tajawal, sans-serif';
+  ctx.fillText('طقس الحرم المكي الآن', 790, topY + 50);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '900 58px Cairo, monospace';
+  ctx.fillText(`${haram.tempC}°C`, 790, topY + 118);
+  ctx.fillStyle = '#D5E5DB';
+  ctx.font = '700 24px Cairo, Tajawal, sans-serif';
+  ctx.fillText(`رطوبة ${haram.humidityPct}% · رياح ${haram.windKmh} كم/س`, 790, topY + 184);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(0, Math.sin(phase + 1.4) * 7);
+  const pGrad = ctx.createLinearGradient(56, topY, 524, topY + topH);
+  pGrad.addColorStop(0, '#DFAA3E');
+  pGrad.addColorStop(0.5, '#F5D57E');
+  pGrad.addColorStop(1, '#CE962C');
+  ctx.fillStyle = pGrad;
+  roundRectPath(ctx, 56, topY, 468, topH, 30);
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#11261E';
+  ctx.font = '800 28px Cairo, Tajawal, sans-serif';
+  ctx.fillText(`الصلاة القادمة: ${haram.nextPrayerNameAr}`, 290, topY + 50);
+  ctx.font = '900 52px Cairo, monospace';
+  ctx.fillText(haram.nextPrayerTime24, 290, topY + 118);
+  ctx.font = '800 26px Cairo, Tajawal, sans-serif';
+  ctx.fillText(formatHaramPrayerCountdown(haram.nextPrayerIso), 290, topY + 184);
+  ctx.restore();
+
+  // Prayer Times Grid Header
+  const gridY = 780;
+  ctx.fillStyle = '#134435';
+  roundRectPath(ctx, 56, gridY, REELS_WIDTH - 112, 76, 22);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 30px Cairo, Tajawal, sans-serif';
+  ctx.fillText('مواقيت الصلاة في المسجد الحرام اليوم', REELS_WIDTH / 2, gridY + 39);
+
+  // 6 Prayer cards (3 columns x 2 rows)
+  const pCardW = 306;
+  const pCardH = 148;
+  const pGapX = 25;
+  const pGapY = 20;
+  const activeIdx = Math.floor(t * haram.prayers.length) % haram.prayers.length;
+
+  haram.prayers.forEach((p, idx) => {
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+    const px = REELS_WIDTH - 56 - pCardW - col * (pCardW + pGapX);
+    const py = gridY + 96 + row * (pCardH + pGapY) + Math.sin(phase + idx * 0.8) * 6;
+    const isNext = p.nameAr === haram.nextPrayerNameAr;
+    const isActive = idx === activeIdx || isNext;
+
+    ctx.save();
+    ctx.fillStyle = isNext ? '#FFF6DB' : isActive ? '#FFFDF5' : '#FAFBF7';
+    roundRectPath(ctx, px, py, pCardW, pCardH, 24);
+    ctx.fill();
+    ctx.strokeStyle = isNext ? '#D7A134' : 'rgba(19, 68, 53, 0.18)';
+    ctx.lineWidth = isNext ? 3.5 : 1.8;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#134435';
+    ctx.font = '800 30px Cairo, Tajawal, sans-serif';
+    ctx.fillText(p.nameAr, px + pCardW / 2, py + 48);
+
+    ctx.fillStyle = '#11261E';
+    ctx.font = '900 42px Cairo, monospace';
+    ctx.fillText(p.time24, px + pCardW / 2, py + 104);
+    ctx.restore();
+  });
+
+  // Haram Architectural & Crowd Capacity Rows
+  const capStartY = 1236;
+  const caps = [
+    {label: 'السعة الاستيعابية للمسجد الحرام', value: haram.totalCapacityLabel},
+    {label: 'الطاقة الاستيعابية لصحن المطاف', value: haram.matafCapacityPerHour},
+    {label: `المساحة الإجمالية (${haram.minaretsCount} مئذنة)`, value: haram.areaSqmLabel},
+  ];
+  caps.forEach((item, idx) => {
+    const ry = capStartY + idx * 144;
+    const nudgeX = Math.sin(phase + idx * 0.9) * 8;
+    ctx.save();
+    ctx.translate(nudgeX, 0);
+    ctx.fillStyle = '#FAFBF7';
+    roundRectPath(ctx, 56, ry, REELS_WIDTH - 112, 120, 26);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(19, 68, 53, 0.16)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#134435';
+    ctx.font = '800 30px Cairo, Tajawal, sans-serif';
+    ctx.fillText(item.label, REELS_WIDTH - 92, ry + 62);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#11261E';
+    ctx.font = '900 34px Cairo, monospace';
+    ctx.fillText(item.value, 92, ry + 62);
+    ctx.restore();
+  });
+
+  // Bottom left empty cleanly
+}
+
 export function renderReelsFrame(
   ctx: CanvasRenderingContext2D,
   toolId: ToolId,
@@ -819,6 +1137,12 @@ export function renderReelsFrame(
       break;
     case 'gold':
       drawGoldFrame(ctx, bundle, t);
+      break;
+    case 'population':
+      drawPopulationFrame(ctx, bundle, t);
+      break;
+    case 'haram':
+      drawHaramFrame(ctx, bundle, t);
       break;
   }
 }

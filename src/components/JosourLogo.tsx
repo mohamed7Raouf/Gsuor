@@ -23,7 +23,7 @@ export const JosourLogo: React.FC<JosourLogoProps> = ({size = 'md', className = 
       className={`inline-flex items-center justify-center bg-white border border-[#D4DDD2] shadow-xs select-none shrink-0 ${sizeClasses} ${className}`}
     >
       <img
-        src="/assets/aistudio/logo_a3720299.webp"
+        src="./assets/aistudio/logo_a3720299.webp"
         alt="شعار جسور"
         referrerPolicy="no-referrer"
         className={`${imgHeight} w-auto object-contain block`}

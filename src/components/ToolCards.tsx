@@ -1,26 +1,39 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Baby,
   Calculator,
   Calendar,
+  Clock,
   CloudRain,
   Download,
+  Droplets,
   Eye,
   Film,
   Image as ImageIcon,
+  Radio,
   Sun,
+  Thermometer,
   TrendingUp,
+  Users,
   Waves,
   Wind,
 } from 'lucide-react';
 import type {
   CurrenciesData,
   DollarBanksData,
+  EgyptPopulationData,
   GoldPricesData,
+  HaramMakkahData,
   JosourLiveBundle,
   ToolId,
   WeatherEnergyData,
 } from '../types/liveData';
-import {exportToolAsPng, exportToolAsReelsVideo} from '../utils/reelsCanvasEngine';
+import {
+  computeLivePopulationSnapshot,
+  exportToolAsPng,
+  exportToolAsReelsVideo,
+  formatHaramPrayerCountdown,
+} from '../utils/reelsCanvasEngine';
 import {EgyptWeatherMapSvg} from './BankIcons';
 import {JosourLogo} from './JosourLogo';
 
@@ -822,6 +835,339 @@ export const GoldPricesCard: React.FC<{
       </div>
 
       <ToolActionFooter toolId="gold" bundle={bundle} />
+    </article>
+  );
+};
+
+/* ============================================================================
+ * 5. LIVE EGYPT POPULATION CLOCK CARD
+ * ========================================================================== */
+export const PopulationCard: React.FC<{
+  data: EgyptPopulationData;
+  bundle: JosourLiveBundle;
+  onPreview: (id: ToolId) => void;
+}> = ({data, bundle, onPreview}) => {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const live = computeLivePopulationSnapshot(data, nowMs);
+
+  return (
+    <article id="tool-population" className="flex flex-col">
+      <div className="relative overflow-hidden rounded-3xl border border-[#C6D1C3] bg-gradient-to-b from-[#E5EFE4] via-[#F7F9F4] to-[#DCE8DC] shadow-sm flex flex-col justify-between min-h-[680px] pb-6">
+        <MotionGraphicBackdrop variant="finance" />
+
+        <div className="relative z-10 p-4 sm:p-5 flex flex-col gap-3">
+          {/* Top Toolbar + Logo on White Background (Top Only) */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="h-9 px-2.5 rounded-lg bg-white/90 border border-[#134435]/15 text-[#134435] text-xs font-display font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
+              <Users className="w-3.5 h-3.5 text-[#134435] animate-josour-icon-swing" />
+              <span>عداد حي</span>
+            </span>
+
+            <div className="animate-josour-breathe">
+              <JosourLogo size="md" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onPreview('population')}
+              className="h-9 px-2.5 rounded-lg bg-white/90 border border-[#134435]/15 text-[#134435] hover:bg-white text-xs font-display font-bold inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5 animate-josour-icon-swing" />
+              <span>9:16</span>
+            </button>
+          </div>
+
+          {/* Emerald Banner */}
+          <div className="mx-auto w-full max-w-[360px] rounded-[28px] bg-gradient-to-br from-[#0D3B2C] via-[#17523F] to-[#0D3B2C] px-5 py-4 text-center shadow-md animate-josour-breathe">
+            <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight">
+              التعداد السكاني في مصر
+            </h2>
+            <p className="font-display font-extrabold text-sm sm:text-base text-[#F2CE74] mt-0.5">
+              الساعة السكانية المباشرة
+            </p>
+          </div>
+
+          {/* Golden Date Pill */}
+          <div className="mx-auto inline-flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gradient-to-r from-[#DFAA3E] via-[#F5D57E] to-[#DDA63A] text-[#11261E] font-display font-extrabold text-xs sm:text-sm shadow-xs animate-josour-float">
+            <Calendar className="w-3.5 h-3.5 shrink-0 animate-josour-icon-swing" />
+            <span>{data.cairoDateAr}</span>
+          </div>
+
+          {/* Live Ticking Population Hero Box */}
+          <div className="rounded-2xl bg-gradient-to-br from-[#134435] to-[#0B2D22] p-4 text-center text-white shadow-sm animate-josour-float">
+            <div className="flex items-center justify-center gap-2 text-xs font-display font-bold text-[#F2CE74]">
+              <span className="w-2 h-2 rounded-full bg-[#F2CE74] animate-ping" />
+              <span>إجمالي عدد السكان الآن</span>
+            </div>
+            <div className="font-num font-black text-3xl sm:text-4xl tracking-tight mt-1.5 text-white">
+              {live.currentTotal.toLocaleString('en-US')}
+            </div>
+            <div className="mt-1.5 text-xs font-body font-bold text-white/85 flex items-center justify-center gap-2">
+              <Baby className="w-4 h-4 text-[#F2CE74] animate-josour-icon-swing" />
+              <span>
+                مولود جديد كل {data.birthIntervalSec} ثانية · نمو سنوي{' '}
+                <span className="font-num text-[#F2CE74]">{data.annualGrowthPct}%</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Births / Deaths / Net Daily Grid */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-[#FAFBF7]/95 border border-[#134435]/15 p-2.5 text-center animate-josour-row-pulse">
+              <div className="font-display font-bold text-[11px] text-[#4B6359]">المواليد اليوم</div>
+              <div className="font-num font-black text-base sm:text-lg text-[#134435] mt-0.5">
+                {live.birthsToday.toLocaleString('en-US')}
+              </div>
+            </div>
+            <div
+              style={{animationDelay: '-3s'}}
+              className="rounded-2xl bg-[#FAFBF7]/95 border border-[#134435]/15 p-2.5 text-center animate-josour-row-pulse"
+            >
+              <div className="font-display font-bold text-[11px] text-[#4B6359]">الوفيات اليوم</div>
+              <div className="font-num font-black text-base sm:text-lg text-[#11261E] mt-0.5">
+                {live.deathsToday.toLocaleString('en-US')}
+              </div>
+            </div>
+            <div
+              style={{animationDelay: '-6s'}}
+              className="rounded-2xl bg-[#FFF6DB] border border-[#D7A134] p-2.5 text-center animate-josour-row-pulse"
+            >
+              <div className="font-display font-bold text-[11px] text-[#11261E]">صافي اليوم</div>
+              <div className="font-num font-black text-base sm:text-lg text-[#134435] mt-0.5">
+                +{live.netToday.toLocaleString('en-US')}
+              </div>
+            </div>
+          </div>
+
+          {/* Male / Female Split Bar */}
+          <div className="rounded-2xl bg-[#FAFBF7]/95 border border-[#C6D1C3] p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-display font-extrabold">
+              <span className="text-[#134435]">
+                الذكور: <span className="font-num">{data.malePct}%</span> (
+                <span className="font-num">{data.malePopulation.toLocaleString('en-US')}</span>)
+              </span>
+              <span className="text-[#9E6E14]">
+                الإناث: <span className="font-num">{data.femalePct}%</span> (
+                <span className="font-num">{data.femalePopulation.toLocaleString('en-US')}</span>)
+              </span>
+            </div>
+            <div className="h-3 rounded-full bg-[#EAF1EA] overflow-hidden flex">
+              <div
+                className="bg-[#134435] h-full transition-all duration-700"
+                style={{width: `${data.malePct}%`}}
+              />
+              <div
+                className="bg-[#E0B347] h-full transition-all duration-700"
+                style={{width: `${data.femalePct}%`}}
+              />
+            </div>
+          </div>
+
+          {/* Year-to-Date & Urban Metrics */}
+          <div className="space-y-1.5">
+            <div className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2.5 flex items-center justify-between text-xs animate-josour-row-pulse">
+              <span className="font-display font-bold text-[#11261E]">المواليد منذ بداية العام</span>
+              <span className="font-num font-black text-sm text-[#134435]">
+                {data.birthsYearToDate.toLocaleString('en-US')}
+              </span>
+            </div>
+            <div
+              style={{animationDelay: '-2.5s'}}
+              className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2.5 flex items-center justify-between text-xs animate-josour-row-pulse"
+            >
+              <span className="font-display font-bold text-[#11261E]">الوفيات منذ بداية العام</span>
+              <span className="font-num font-black text-sm text-[#11261E]">
+                {data.deathsYearToDate.toLocaleString('en-US')}
+              </span>
+            </div>
+            <div
+              style={{animationDelay: '-5s'}}
+              className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2.5 flex items-center justify-between text-xs animate-josour-row-pulse"
+            >
+              <span className="font-display font-bold text-[#11261E]">نسبة سكان الحضر</span>
+              <span className="font-num font-black text-sm text-[#134435]">{data.urbanPct}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom left empty cleanly as requested */}
+      </div>
+
+      <ToolActionFooter toolId="population" bundle={bundle} />
+    </article>
+  );
+};
+
+/* ============================================================================
+ * 6. AL-HARAM MAKKAH LIVE STATS + MULTI-QUALITY LIVE STREAM BUTTON CARD
+ * ========================================================================== */
+export const HaramStatsCard: React.FC<{
+  data: HaramMakkahData;
+  bundle: JosourLiveBundle;
+  onPreview: (id: ToolId) => void;
+  onOpenHaramLive: () => void;
+}> = ({data, bundle, onPreview, onOpenHaramLive}) => {
+  const activePrayerIdx = useTenSecondRowIndex(data.prayers.length);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextCountdown = formatHaramPrayerCountdown(data.nextPrayerIso, nowMs);
+
+  return (
+    <article id="tool-haram" className="flex flex-col">
+      <div className="relative overflow-hidden rounded-3xl border border-[#C6D1C3] bg-gradient-to-b from-[#E5EFE4] via-[#F7F9F4] to-[#DCE8DC] shadow-sm flex flex-col justify-between min-h-[680px] pb-6">
+        <MotionGraphicBackdrop variant="gold" />
+
+        <div className="relative z-10 p-4 sm:p-5 flex flex-col gap-3">
+          {/* Top Toolbar + Logo on White Background (Top Only) */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="h-9 px-2.5 rounded-lg bg-[#B82828] text-white text-xs font-display font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <span>مكة مباشر</span>
+            </span>
+
+            <div className="animate-josour-breathe">
+              <JosourLogo size="md" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onPreview('haram')}
+              className="h-9 px-2.5 rounded-lg bg-white/90 border border-[#134435]/15 text-[#134435] hover:bg-white text-xs font-display font-bold inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5 animate-josour-icon-swing" />
+              <span>9:16</span>
+            </button>
+          </div>
+
+          {/* Emerald Banner */}
+          <div className="mx-auto w-full max-w-[360px] rounded-[28px] bg-gradient-to-br from-[#0D3B2C] via-[#17523F] to-[#0D3B2C] px-5 py-4 text-center shadow-md animate-josour-breathe">
+            <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight">
+              الحرم المكي مباشر
+            </h2>
+            <p className="font-display font-extrabold text-sm sm:text-base text-[#F2CE74] mt-0.5">
+              إحصائيات المسجد الحرام ومكة المكرمة
+            </p>
+          </div>
+
+          {/* Golden Hijri + Gregorian Pill */}
+          <div className="mx-auto inline-flex items-center justify-center gap-2 px-5 py-1.5 rounded-full bg-gradient-to-r from-[#DFAA3E] via-[#F5D57E] to-[#DDA63A] text-[#11261E] font-display font-extrabold text-xs sm:text-sm shadow-xs animate-josour-float">
+            <Calendar className="w-3.5 h-3.5 shrink-0 animate-josour-icon-swing" />
+            <span>
+              {data.hijriDateAr} · {data.makkahTimeAr}
+            </span>
+          </div>
+
+          {/* Makkah Weather & Next Prayer Grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl bg-gradient-to-br from-[#134435] to-[#0B2D22] p-3 text-white shadow-xs animate-josour-float">
+              <div className="font-display font-extrabold text-xs text-[#F2CE74] flex items-center justify-between">
+                <span>طقس الحرم الآن</span>
+                <Thermometer className="w-4 h-4 animate-josour-icon-swing" />
+              </div>
+              <div className="font-num font-black text-2xl mt-1">{data.tempC}°C</div>
+              <div className="text-[11px] font-body text-white/85 flex items-center gap-2 mt-1">
+                <span className="inline-flex items-center gap-0.5">
+                  <Droplets className="w-3 h-3 text-[#F2CE74]" />
+                  {data.humidityPct}%
+                </span>
+                <span className="inline-flex items-center gap-0.5">
+                  <Wind className="w-3 h-3 text-[#F2CE74]" />
+                  {data.windKmh} كم/س
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{animationDelay: '-4s'}}
+              className="rounded-2xl bg-gradient-to-br from-[#D7A134] via-[#F2CF76] to-[#CE962C] p-3 text-[#11261E] shadow-xs animate-josour-float"
+            >
+              <div className="font-display font-extrabold text-xs flex items-center justify-between">
+                <span>الصلاة القادمة: {data.nextPrayerNameAr}</span>
+                <Clock className="w-4 h-4 animate-josour-icon-swing" />
+              </div>
+              <div className="font-num font-black text-2xl mt-1">{data.nextPrayerTime24}</div>
+              <div className="text-[11px] font-display font-extrabold mt-1">{nextCountdown}</div>
+            </div>
+          </div>
+
+          {/* 6 Prayer Times Grid */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {data.prayers.map((p, idx) => {
+              const isNext = p.nameAr === data.nextPrayerNameAr;
+              const isActive = idx === activePrayerIdx;
+              return (
+                <div
+                  key={p.id}
+                  style={{animationDelay: `${idx * -1.4}s`}}
+                  className={`rounded-xl px-2 py-2 text-center border transition-all animate-josour-row-pulse ${
+                    isNext
+                      ? 'bg-[#FFF5D6] border-[#D7A134] shadow-2xs'
+                      : isActive
+                        ? 'bg-[#FFFDF4] border-[#E0B347]'
+                        : 'bg-[#FAFBF7]/95 border-[#134435]/12'
+                  }`}
+                >
+                  <div className="font-display font-bold text-[11px] text-[#134435]">{p.nameAr}</div>
+                  <div className="font-num font-black text-sm text-[#11261E] mt-0.5">{p.time24}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Haram Operational & Capacity Stats */}
+          <div className="space-y-1.5">
+            <div className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2 flex items-center justify-between text-xs animate-josour-row-pulse">
+              <span className="font-display font-bold text-[#11261E]">السعة الاستيعابية</span>
+              <span className="font-num font-black text-[#134435]">{data.totalCapacityLabel}</span>
+            </div>
+            <div
+              style={{animationDelay: '-2.5s'}}
+              className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2 flex items-center justify-between text-xs animate-josour-row-pulse"
+            >
+              <span className="font-display font-bold text-[#11261E]">طاقة صحن المطاف</span>
+              <span className="font-num font-black text-[#134435]">{data.matafCapacityPerHour}</span>
+            </div>
+            <div
+              style={{animationDelay: '-5s'}}
+              className="rounded-xl bg-[#FAFBF7]/95 border border-[#134435]/12 px-3.5 py-2 flex items-center justify-between text-xs animate-josour-row-pulse"
+            >
+              <span className="font-display font-bold text-[#11261E]">
+                المساحة ({data.minaretsCount} مئذنة)
+              </span>
+              <span className="font-num font-black text-[#11261E]">{data.areaSqmLabel}</span>
+            </div>
+          </div>
+
+          {/* Primary CTA to enter dedicated Live Haram Broadcast Page */}
+          <button
+            type="button"
+            onClick={onOpenHaramLive}
+            className="mt-1 w-full h-12 px-4 rounded-2xl bg-gradient-to-r from-[#0D3B2C] via-[#134435] to-[#0D3B2C] hover:from-[#0B2D22] hover:to-[#0B2D22] border border-[#E0B347]/60 text-white font-display font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md transition-all cursor-pointer animate-josour-breathe"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+            <Radio className="w-4 h-4 text-[#F2CE74]" />
+            <span>مشاهدة البث المباشر للحرم المكي (جودات متعددة)</span>
+          </button>
+        </div>
+
+        {/* Bottom left empty cleanly as requested */}
+      </div>
+
+      <ToolActionFooter toolId="haram" bundle={bundle} />
     </article>
   );
 };

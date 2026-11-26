@@ -1,4 +1,4 @@
-export type ToolId = 'dollar' | 'weather' | 'currencies' | 'gold';
+export type ToolId = 'dollar' | 'weather' | 'currencies' | 'gold' | 'population' | 'haram';
 
 export interface SourceAttemptLog {
   sourceName: string;
@@ -96,10 +96,73 @@ export interface GoldPricesData {
   source: SourceFailoverMeta;
 }
 
+export interface EgyptPopulationData {
+  cairoDateAr: string;
+  cairoTimeAr: string;
+  basePopulation: number;
+  fetchedAtIso: string;
+  growthPerSecond: number;
+  birthsPerSecond: number;
+  deathsPerSecond: number;
+  annualGrowthPct: number;
+  malePopulation: number;
+  femalePopulation: number;
+  malePct: number;
+  femalePct: number;
+  birthsTodayBase: number;
+  deathsTodayBase: number;
+  dailyNetIncrease: number;
+  birthsYearToDate: number;
+  deathsYearToDate: number;
+  birthIntervalSec: number;
+  urbanPct: number;
+  source: SourceFailoverMeta;
+}
+
+export interface HaramPrayerItem {
+  id: 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+  nameAr: string;
+  time24: string;
+}
+
+export interface HaramStreamQualityOption {
+  id: 'auto' | '720p' | '480p' | '360p';
+  labelAr: string;
+  resolution: string;
+  bitrateLabel: string;
+}
+
+export interface HaramMakkahData {
+  makkahDateAr: string;
+  makkahTimeAr: string;
+  hijriDateAr: string;
+  tempC: number;
+  humidityPct: number;
+  windKmh: number;
+  weatherConditionAr: string;
+  prayers: HaramPrayerItem[];
+  nextPrayerNameAr: string;
+  nextPrayerTime24: string;
+  nextPrayerIso: string;
+  nextPrayerCountdownAr: string;
+  totalCapacityLabel: string;
+  matafCapacityPerHour: string;
+  areaSqmLabel: string;
+  minaretsCount: number;
+  streamMeta: {
+    availableQualities: HaramStreamQualityOption[];
+    masterPlaylistUrl: string;
+    statusAr: string;
+  };
+  source: SourceFailoverMeta;
+}
+
 export interface JosourLiveBundle {
   dollar: DollarBanksData;
   weather: WeatherEnergyData;
   currencies: CurrenciesData;
   gold: GoldPricesData;
+  population: EgyptPopulationData;
+  haram: HaramMakkahData;
   serverTimeIso: string;
 }

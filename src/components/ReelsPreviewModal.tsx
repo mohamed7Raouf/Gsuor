@@ -22,6 +22,8 @@ const TOOL_TITLES: Record<ToolId, string> = {
   weather: 'معاينة ريلز: الأرصاد ومستقبل الطاقة النظيفة',
   currencies: 'معاينة ريلز: أسعار العملات مقابل الجنيه',
   gold: 'معاينة ريلز: أسعار الذهب كل العيارات',
+  population: 'معاينة ريلز: التعداد السكاني في مصر لايف',
+  haram: 'معاينة ريلز: إحصائيات الحرم المكي المباشرة',
 };
 
 export const ReelsPreviewModal: React.FC<ReelsPreviewModalProps> = ({
